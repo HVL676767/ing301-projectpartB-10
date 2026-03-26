@@ -38,6 +38,13 @@ class SmartHouseRepository:
         """
         # TODO: START here! remove the following stub implementation and implement this function 
         #       by retrieving the data from the database via SQL `SELECT` statements.
+        res = self.conn.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
+        table = res.fetchall()
+        info = []
+        for name in self.conn.execute("SELECT name FROM sqlite_master WHERE type = 'table';"):
+            info = info.append(self.conn.execute(f"SELECT * FROM {name[0]}"))
+            
+        
         return NotImplemented
 
 
@@ -47,7 +54,15 @@ class SmartHouseRepository:
         Returns None if the given object has no sensor readings.
         """
         # TODO: After loading the smarthouse, continue here
-        return NotImplemented
+    
+
+        res = self.conn.execute("select value FROM measurements m WHERE device = ? ORDER BY ts DESC LIMIT 1;",(id,))
+        reading = res.fetchall()
+        if reading:
+            verdi = reading[0][0]
+        else:
+            verdi = None
+        return verdi
 
 
     def update_actuator_state(self, actuator):
