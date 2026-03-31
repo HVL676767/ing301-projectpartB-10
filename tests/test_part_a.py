@@ -74,6 +74,17 @@ class TestPartA(TestCase):
 
 
     # Level 3 Advanced: Registering the same device in another room, moves it from one room to another 
+    
+    def test_basic_get_floors(self):
+        self.floors = []
+        for i in range(0,len(h.building.floor)+1):
+            for floor in h.building.floor:
+                if floor.etasje == i:
+                    self.floors.append(floor)
+                    
+        
+        self.assertEqual(len(self.floors), len(h.get_floors()))
+        self.assertEqual(self.floors, h.get_floors())
 
     def test_zadvanced_move_device(self):
         # find the the dressing room

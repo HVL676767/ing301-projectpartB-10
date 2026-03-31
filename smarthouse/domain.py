@@ -42,6 +42,9 @@ class Floor:
     def __repr__(self):
         return f"Etasje {self.etasje}, building {self.building}, antallRom {len(self.room)}"
 
+    def __lt__(self, other):
+        return self.etasje < other.etasje
+
     def addRoom(self, room: "Room"):
         self.room.append(room)
 
@@ -243,7 +246,8 @@ class SmartHouse:
         registered a basement (level=0), a ground floor (level=1) and a first floor 
         (leve=1), then the resulting list contains these three flors in the above order.
         """
-        return self.building.floor #TODO Sortere
+        self.building.floor.sort()
+        return self.building.floor
 
 
     def get_rooms(self):

@@ -3,13 +3,6 @@ from smarthouse.domain import SmartHouse, Actuator, Sensor, KompleksDevice, Prod
 DEMO_HOUSE = SmartHouse()
 
 # Building house structure
-ground_floor = DEMO_HOUSE.register_floor(1)
-entrance = DEMO_HOUSE.register_room(ground_floor, 13.5, "Entrance")
-
-guestRoom1 = DEMO_HOUSE.register_room(ground_floor,8, "Guest Room")
-bathRoom1 = DEMO_HOUSE.register_room(ground_floor, 6.3, "Bathroom 1")
-livingRoom = DEMO_HOUSE.register_room(ground_floor, 39.75, "LivingRoom / Kitchen")
-garage = DEMO_HOUSE.register_room(ground_floor, 19, "Garage")
 
 second_floor = DEMO_HOUSE.register_floor(2)
 hallway = DEMO_HOUSE.register_room(second_floor, 10, "Hallway")
@@ -19,6 +12,14 @@ dressingRoom = DEMO_HOUSE.register_room(second_floor, 4, "Dressing Room")
 guestRoom3 = DEMO_HOUSE.register_room(second_floor, 10, "Guest Room 3")
 office = DEMO_HOUSE.register_room(second_floor,11.75,"Office")
 bathroom2 = DEMO_HOUSE.register_room(second_floor, 9.25, "Bathroom 2")
+
+ground_floor = DEMO_HOUSE.register_floor(1)
+entrance = DEMO_HOUSE.register_room(ground_floor, 13.5, "Entrance")
+
+guestRoom1 = DEMO_HOUSE.register_room(ground_floor,8, "Guest Room")
+bathRoom1 = DEMO_HOUSE.register_room(ground_floor, 6.3, "Bathroom 1")
+livingRoom = DEMO_HOUSE.register_room(ground_floor, 39.75, "LivingRoom / Kitchen")
+garage = DEMO_HOUSE.register_room(ground_floor, 19, "Garage")
 
 smartLook = DEMO_HOUSE.register_device(entrance, Actuator("4d5f1ac6-906a-4fd1-b4bf-3a0671e4c4f1", Produktegenskap("MythicalTech","Guardian Lock 7000","Smart Lock")))
 co2Sensor = DEMO_HOUSE.register_device(livingRoom, Sensor("8a43b2d7-e8d3-4f3d-b832-7dbf37bf629e",Produktegenskap("ElysianTech","Smoke Warden 1000","CO2 sensor")))
