@@ -187,7 +187,7 @@ class KompleksDevice(Device):
         self.measurements = self.listTilTupleList(measurement)
         self.state = state
     
-    def addMeasurement(self, measurement : Measurement, sensorType : Optional[str]):
+    def addMeasurement(self, measurement : Measurement, sensorType : Optional[str] = ''):
         self.measurements.append((sensorType, measurement))
 
     def is_sensor(self):

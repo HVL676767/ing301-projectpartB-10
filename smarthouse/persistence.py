@@ -111,11 +111,13 @@ class SmartHouseRepository:
         # TODO: After loading the smarthouse, continue here
         if isinstance(sensor, Device):
             id = sensor.id
+        else:
+            id = None
 
-        res = self.conn.execute("select value FROM measurements m WHERE device = ? ORDER BY ts DESC LIMIT 1;",(id,))
+        res = self.conn.execute("select * FROM measurements m WHERE device = ? ORDER BY ts DESC LIMIT 1;",(id,))
         reading = res.fetchone()
         if reading:
-            verdi = reading[0]
+            verdi = Measurement(reading[1],reading[2],reading[3])
         else:
             verdi = None
         return verdi
@@ -130,7 +132,7 @@ class SmartHouseRepository:
         #       and SQL `UPDATE` statement. Remember also that you will have to call `commit()` on the `Connection`
         #       stored in the `self.conn` instance variable.
 
-        res = self.conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND lower(name) = 'actuator';")
+        res = self.conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND lower(name) = 'actuatorstate';")
         if res.fetchone() is None:
             self.conn.execute("""
                 CREATE TABLE actuatorState(
@@ -170,7 +172,7 @@ class SmartHouseRepository:
                     JOIN devices d ON m.device = d.id
                     JOIN rooms r ON r.id  = d.room 
                     WHERE m.unit like '%C'
-                    AND lower(r.name) = ?""", (room.name.lower(),))
+                    AND lower(r.name) = ?""", (room.room_name.lower(),))
             
             resDate = res.fetchone()
             start_date = dt.strptime(resDate[0], '%Y-%m-%d %H:%M:%S').date()
@@ -184,7 +186,7 @@ class SmartHouseRepository:
                     JOIN devices d ON m.device = d.id
                     JOIN rooms r ON r.id  = d.room 
                     WHERE m.unit like '%C'
-                    AND lower(r.name) = ?""", (room.name.lower(),))
+                    AND lower(r.name) = ?""", (room.room_name.lower(),))
             
             resDate = res.fetchone()
             end_date = dt.strptime(resDate[0], '%Y-%m-%d %H:%M:%S').date()
@@ -198,8 +200,10 @@ class SmartHouseRepository:
                 JOIN rooms r ON r.id  = d.room 
                 WHERE m.unit like '%C'
                 AND lower(r.name) = ?
-                AND m.ts like ? """,(room.name.lower(),start_date + '%'))
-            dateAndValue[start_date] = res.fetchone()[0]
+                AND m.ts like ? """,(room.room_name.lower(),str(start_date) + '%'))
+            average = res.fetchone()[0]
+            if average is not None:
+                dateAndValue[str(start_date)] = average
             start_date += td(days=1)
         return dateAndValue
 
@@ -233,12 +237,11 @@ class SmartHouseRepository:
                             AND lower(r.name) = lower(?)
                             AND m.ts like ?)
             GROUP BY strftime('%H', m.ts)
-                                """, (room.name, date_whole, room.name, date_whole))
+                                """, (room.room_name, date_whole, room.room_name, date_whole))
         listValue = res.fetchall()
         for value in listValue:
             if value[1] > 3:
-                hours.append(value[0])
-            #hours.append(i)
-
-        return NotImplemented
+                hours.append(int(value[0]))
+        hours.sort()
+        return hours
 
