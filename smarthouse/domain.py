@@ -1,110 +1,207 @@
-from datetime import datetime
-from random import random
-from typing import List, Optional, Union 
-from abc import abstractmethod
+from typing import List, Optional, Union
 
 class Measurement:
     """
     This class represents a measurement taken from a sensor.
     """
 
-    def __init__(self, timestamp:str , value: float, unit: str) -> None:
+    def __init__(self, timestamp, value, unit):
         self.timestamp = timestamp
         self.value = value
         self.unit = unit
 
 
-class Device:
 
-    def __init__(self, id: str, model_name: str, supplier: str, device_type: str):
-        self.id = id
-        self.model_name = model_name 
-        self.supplier = supplier
-        self.device_type = device_type
-        self.room : Optional[Room] = None
+# TODO: Add your own classes here!
 
-    def get_device_type(self) -> str:
-        return self.device_type
-
-    @abstractmethod
-    def is_actuator(self) -> bool:
-        pass
-
-    @abstractmethod
-    def is_sensor(self) -> bool:
-        pass
-
-
-class Sensor(Device):
-
-    def __init__(self, id: str, model_name: str, supplier: str, device_type: str, unit: str = ""):
-        super().__init__(id, model_name, supplier, device_type)
-        self.unit = unit
-
-    def is_sensor(self) -> bool:
-        return True 
+class Building:
     
-    def is_actuator(self) -> bool:
-        return False
+    def __init__(self):
+        self.floor = []
     
-    def last_measurement(self) -> Measurement:
-        return Measurement(datetime.now().isoformat(), random() * 10, self.unit)
+    def addFloor(self, floor: "Floor"): 
+        self.floor.append(floor)
 
+    def removeFloor(self, floor: "Floor"):
+        if floor in self.floor:
+            self.floor.remove(floor)
+
+    def __repr__(self):
+        return f"Bygg med {len(self.floor)}"
+
+class Floor:
+    
+    def __init__(self, building: Building, etasje: int):
+        self.etasje =  etasje
+        self.building = building
+        if any(f.etasje == etasje for f in building.floor):
+            raise ValueError("Etasje finnes allerede")
+        self.room = []
+        self.building.addFloor(self)
+    
+    def __repr__(self):
+        return f"Etasje {self.etasje}, building {self.building}, antallRom {len(self.room)}"
+
+    def addRoom(self, room: "Room"):
+        self.room.append(room)
+
+    def removeRoom(self, room: "Room"):
+        if room in self.room:
+            self.room.remove(room)
+
+    def totalAreal(self):
+        areal = 0
+        for room in self.room:
+            areal = areal + room.areal
+        return areal
+
+class Room: 
+
+    def __init__(self, floor: Floor, roomName: str,  roomAreal :float, device = None):
+        self.floor = floor
+        self.room_name = roomName
+        self.areal = roomAreal
+
+        if (device is None):
+            self.devices = []        
+        elif(type(device) == list):
+            self.devices = device
+        else:
+            self.devices = [device]
+
+        self.floor.addRoom(self)
+
+
+    def changeRoomSize(self, newSize):
+        self.areal = newSize
+
+    def changeRoomName(self, newName):
+        self.room_name = newName
+
+    def addDevice(self, device : "Device"):
+        self.devices.append(device)
+
+    def removeDevice(self, device : "Device"):
+        if device in self.devices:
+            self.devices.remove(device)
+
+    def __repr__(self):
+        return f"Etasje {self.floor.etasje}, romNavn {self.room_name}, areal {self.areal}"
+        
         
 
 
-class Actuator(Device):
+class Device:
 
-    def __init__(self, id: str, model_name: str, supplier: str, device_type: str):
-        super().__init__(id, model_name, supplier, device_type)
-        self.state : Union[float, bool] = False
+    def __init__(self,id: str, produktegenskap: "Produktegenskap", huskenavn = None):
+        self.id = id
+        self.room = None
+        self.produktegenskap = produktegenskap
+        self.huskenavn = huskenavn
+        # self.room.addDevice(self)
 
-    def is_actuator(self) -> bool:
-        return True
 
-    def is_sensor(self) -> bool:
+    def regRoom(self, room):
+        if self.room is not None:
+            self.room.removeDevice(self)
+        self.room = room
+        self.room.addDevice(self)
+
+    def changeRoom(self, newRoom : "Room"):
+        self.room.removeDevice(self)
+        self.room = newRoom
+        self.room.addDevice(self)   
+
+    def is_actuator(self):
         return False
 
-    def turn_on(self, target_value: Optional[float] = None):
-        if target_value:
-            self.state = target_value
-        else:
-            self.state = True
+    def is_sensor(self):
+        return False
 
+    def get_device_type(self):
+        return self.produktegenskap.device_type
+    
+
+class Produktegenskap:
+
+    def __init__(self, supplier: str, model_name : str, device_type: str):
+        self.supplier = supplier
+        self.model_name  = model_name 
+        self.device_type = device_type
+
+class Actuator(Device):
+    
+    def __init__(self, id: str, produktegenskap: Produktegenskap, state = False, huskenavn = None):
+        super().__init__(id, produktegenskap, huskenavn)
+        self.state = state
+
+    def is_actuator(self):
+        return True
+    def turn_on(self, targetValue = True):
+        self.state = targetValue
     def turn_off(self):
-        self.state = False 
+        self.state = False
+    def is_active(self):
+        return bool(self.state)
+    
+        
+class Sensor(Device):
 
-    def is_active(self) -> bool:
-        return self.state is not False
+    def __init__(self,  id: str,  produktegenskap: "Produktegenskap", huskenavn = None, measurement = 0):
+        super().__init__(id, produktegenskap, huskenavn)
+        self.measurements = [measurement]
 
-
-class ActuatorWithSensor(Actuator, Sensor):
-
-    def __init__(self, id: str, model_name: str, supplier: str, device_type: str):
-        super().__init__(id, model_name, supplier, device_type)
-
-    def is_actuator(self) -> bool:
+    def is_sensor(self):
         return True
+    
+    def addMeasurement(self, measurement: Measurement):
+        self.measurements.append(measurement)
+    
+    def last_measurement(self):
+        return self.measurements[len(self.measurements)-1]
+    
+    def all_measurements(self):
+        return self.measurements
 
-    def is_sensor(self) -> bool:
-        return True
+class KompleksDevice(Device):
 
+    @staticmethod
+    def listTilTupleList(verdi):
+        if verdi is None:
+            liste = []
+        elif type(verdi) == list:
+            liste = []
+            for enVerdi in verdi:
+                if type(enVerdi) == tuple:
+                    liste.append(enVerdi)
+                else:
+                    liste.append(('',enVerdi))
+        elif type(verdi) == tuple:
+            liste = [verdi]
+        else:
+            liste = [('', verdi)]
+        return liste
 
-class Floor:
+    def __init__(self, id:str, produktegenskap:Produktegenskap, measurement: Optional[Measurement] = None, state = None, huskenavn: Optional[str] =None):
+        super().__init__(id, produktegenskap, huskenavn)
+        self.measurements = self.listTilTupleList(measurement)
+        self.state = state
+    
+    def addMeasurement(self, measurement : Measurement, sensorType : Optional[str]):
+        self.measurements.append((sensorType, measurement))
 
-    def __init__(self, level):
-        self.level = level
-        self.rooms = []
-
-
-class Room:
-
-    def __init__(self, floor: Floor, room_size: float, room_name: Optional[str]):
-        self.floor = floor 
-        self.room_size = room_size
-        self.room_name = room_name
-        self.devices : List[Device]= []
-
+    def is_sensor(self):
+        return bool(self.measurements)
+    
+    def is_actuator(self):
+        return bool(self.state)
+    
+    def turn_on(self, targetValue = True):
+        self.state = targetValue
+    def turn_off(self):
+        self.state = False
+    def is_active(self):
+        return self.state
 
 
 class SmartHouse:
@@ -116,87 +213,90 @@ class SmartHouse:
     The SmartHouse class provides functionality to register rooms and floors (i.e. changing the 
     house's physical layout) as well as register and modify smart devices and their state.
     """
+    def __init__(self):
+        self.building = Building()    
 
-
-    def __init__(self) -> None:
-        self.floors : List[Floor]= []
-
-    def register_floor(self, level: int) -> Floor:
+    def register_floor(self, level):
         """
         This method registers a new floor at the given level in the house
         and returns the respective floor object.
         """
-        floor = Floor(level)
-        self.floors.append(floor)
+        for f in self.building.floor:
+            if f.etasje == level:
+                return f
+        floor = Floor(self.building, level)
         return floor
 
-    def register_room(self, floor: Floor, room_size: float, room_name: Optional[str] = None) -> Room:
+
+    def register_room(self, floor, room_size, room_name = None):
         """
         This methods registers a new room with the given room areal size 
         at the given floor. Optionally the room may be assigned a mnemonic name.
         """
-        room = Room(floor, room_size, room_name)
-        floor.rooms.append(room)
+        room = Room(floor, room_name, room_size)
         return room
 
-
-    def get_floors(self) -> List[Floor]:
+    def get_floors(self):
         """
         This method returns the list of registered floors in the house.
         The list is ordered by the floor levels, e.g. if the house has 
         registered a basement (level=0), a ground floor (level=1) and a first floor 
         (leve=1), then the resulting list contains these three flors in the above order.
         """
-        return self.floors
+        return self.building.floor #TODO Sortere
 
 
-    def get_rooms(self) -> List[Room]:
+    def get_rooms(self):
         """
         This methods returns the list of all registered rooms in the house.
         The resulting list has no particular order.
         """
-        result = []
-        for f in self.floors:
-            result.extend(f.rooms)
-        return result
+        allRoom = []
+
+        for floors in self.building.floor:
+            allRoom = allRoom + floors.room
+
+        return allRoom
 
 
-    def get_area(self) -> float:
+    def get_area(self):
         """
         This methods return the total area size of the house, i.e. the sum of the area sizes of each room in the house.
         """
-        result = 0.0
-        for r in self.get_rooms():
-            result += r.room_size
-        return result
+        areal = 0
+
+        for floor in self.building.floor:
+            areal = areal + floor.totalAreal()
+
+        return areal
 
 
-    def register_device(self, room: Room, device: Device):
+    def register_device(self, room, device):
         """
         This methods registers a given device in a given room.
         """
-        old_room = device.room
-        if old_room:
-            old_room.devices.remove(device)
-        room.devices.append(device)
-        device.room = room
-
-
-    def get_devices(self) -> List[Device]:
-        """This method retrieves a list of all devices in the house"""
-        result = []
-        for r in self.get_rooms():
-            result.extend(r.devices)
-        return result
+        device.regRoom(room)
+        return device
 
     
-    def get_device_by_id(self, device_id: str) -> Optional[Device]:
+    def get_devices(self):
+        returnDevice = []
+        for etasje in self.building.floor:
+            for room in etasje.room:
+                for device in room.devices:
+                    returnDevice.append(device)
+
+        return returnDevice
+
+    def get_device_by_id(self, device_id):
         """
         This method retrieves a device object via its id.
         """
-        for d in self.get_devices():
-            if d.id == device_id:
-                return d
-        return None
+        
+        returnDevice = None
 
-       
+        for device in self.get_devices():
+            if device.id == device_id:
+                returnDevice = device
+        
+        return returnDevice
